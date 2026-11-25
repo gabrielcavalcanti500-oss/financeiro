@@ -1,27 +1,32 @@
-import { Suspense } from "react";
-import { BottomNav } from "@/components/layout/bottom-nav";
-import { Sidebar } from "@/components/layout/sidebar";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
-export default function DashboardLayout({
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Financeiro",
+  description: "Controle financeiro pessoal inteligente",
+};
+
+export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-50">
-      {/* Os menus leem o endereço atual (usePathname), que só existe na requisição.
-          O Suspense permite que o resto da página seja pré-gerado. */}
-      <Suspense fallback={null}>
-        <Sidebar />
-      </Suspense>
-
-      <div className="md:pl-60">
-        <main className="mx-auto max-w-5xl p-4 pb-24 md:p-8">{children}</main>
-      </div>
-
-      <Suspense fallback={null}>
-        <BottomNav />
-      </Suspense>
-    </div>
+    <html lang="pt-BR">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {children}
+      </body>
+    </html>
   );
 }
