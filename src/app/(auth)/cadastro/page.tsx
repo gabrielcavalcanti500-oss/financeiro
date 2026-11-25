@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 const schema = z.object({
   fullName: z.string().min(2, "Informe seu nome"),
@@ -51,6 +52,7 @@ export default function CadastroPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-950">
         <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <BrandMark className="mb-6" />
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50">Confirme seu e-mail</h1>
           <p className="mt-2 text-sm text-gray-500">
             Enviamos um link de confirmação. Depois de confirmar, faça login.
