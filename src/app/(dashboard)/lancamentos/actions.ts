@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { parseMoney } from "@/lib/finance/money";
+import { createCardPurchase } from "@/app/(dashboard)/cartoes/actions";
 
 export type ActionState = { error?: string; success?: boolean };
 
@@ -199,4 +200,21 @@ export async function deleteTransaction(id: string): Promise<ActionState> {
 
   revalidateAll();
   return { success: true };
+}
+
+/**
+ * Ponto único de entrada do formulário de Lançamentos.
+ * Compra no cartão vai para a RPC create_card_purchase (parcelas, fatura e
+ * centavos são calculados no banco); o resto segue o fluxo normal.
+ */
+export async function createLaunch(
+  prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  if (text(formData, "type") === "card") {
+    // O formulário usa o campo "amount"; a action do cartão espera "total".
+    formData.set("total", text(formData, "amount") ?? "");
+    return createCardPurchase(prev, formData);
+  }
+  return createTransaction(prev, formData);
 }

@@ -7,7 +7,7 @@ import {
   CreditCard,
   Pencil,
 } from "lucide-react";
-import { createTransaction } from "@/app/(dashboard)/lancamentos/actions";
+import { createLaunch } from "@/app/(dashboard)/lancamentos/actions";
 import { DeletePurchaseButton } from "@/components/cards/delete-purchase-button";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -62,7 +62,7 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
   const month = valid ? mes : now.month;
   const { start, end } = monthRange(year, month);
 
-  const [accountsRes, categoriesRes, txRes, summaryRes] = await Promise.all([
+  const [accountsRes, categoriesRes, txRes, summaryRes, cardsRes] = await Promise.all([
     supabase.from("financial_accounts").select("id, name").eq("is_archived", false).order("name"),
     supabase.from("categories").select("id, name, type").order("name"),
     supabase
@@ -78,7 +78,8 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
       .lt("transaction_date", end)
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.rpc("monthly_summary", { p_year: year, p_month: month }),
+      supabase.rpc("monthly_summary", { p_year: year, p_month: month }),
+    supabase.from("card_summary").select("card_id, name, closing_day, due_day").order("name"),
   ]);
 
   if (accountsRes.error || categoriesRes.error || txRes.error) {
@@ -92,6 +93,13 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
 
   const accounts = accountsRes.data ?? [];
   const categories = categoriesRes.data ?? [];
+    if (cardsRes.error) console.error("lancamentos/cartoes:", cardsRes.error.code, cardsRes.error.message);
+  const cards = (cardsRes.data ?? []).map((c) => ({
+    id: c.card_id as string,
+    name: c.name as string,
+    closing_day: Number(c.closing_day),
+    due_day: Number(c.due_day),
+  }));
   const transactions = (txRes.data ?? []) as unknown as TxRow[];
   const summary = summaryRes.data?.[0];
   const income = Number(summary?.total_income ?? 0);
@@ -112,7 +120,8 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
           accounts={accounts}
           categories={categories}
           defaultDate={todayISO()}
-          action={createTransaction}
+          action={createLaunch}
+          cards={cards}
           resetOnSuccess
         />
       )}
