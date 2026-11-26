@@ -18,7 +18,7 @@ export async function EditTransactionContent({ params }: { params: Promise<{ id:
     supabase
       .from("transactions")
       .select(
-        "id, type, description, amount, transaction_date, status, account_id, transfer_account_id, category_id, payment_method, notes"
+                "id, type, description, amount, transaction_date, status, account_id, transfer_account_id, category_id, payment_method, notes, card_id"
       )
       .eq("id", id)
       .maybeSingle(),
@@ -37,6 +37,7 @@ export async function EditTransactionContent({ params }: { params: Promise<{ id:
 
   const tx = txRes.data;
   if (!tx) notFound(); // não existe ou não pertence ao usuário (o RLS esconde)
+    if (tx.type === "card_payment" || tx.card_id) notFound();
 
   const [year, month] = tx.transaction_date.split("-");
 

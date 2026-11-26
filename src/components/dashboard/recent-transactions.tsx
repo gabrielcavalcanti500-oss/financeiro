@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, CreditCard } from "lucide-react";
 import { formatDateBR } from "@/lib/finance/dates";
 import { formatBRL } from "@/lib/finance/money";
 
 export type RecentTx = {
   id: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "card_payment";
   description: string;
   amount: number | string;
   transaction_date: string;
@@ -17,6 +17,7 @@ const STYLE = {
   income: { icon: ArrowUpCircle, color: "text-green-600", sign: "+" },
   expense: { icon: ArrowDownCircle, color: "text-red-600", sign: "−" },
   transfer: { icon: ArrowLeftRight, color: "text-gray-500", sign: "" },
+  card_payment: { icon: CreditCard, color: "text-gray-500", sign: "−" },
 } as const;
 
 export function RecentTransactions({ items }: { items: RecentTx[] }) {
@@ -38,6 +39,7 @@ export function RecentTransactions({ items }: { items: RecentTx[] }) {
           {items.map((t) => {
             const s = STYLE[t.type];
             const Icon = s.icon;
+            const showCategory = t.type === "income" || t.type === "expense";
             return (
               <li key={t.id} className="flex items-center gap-3 p-4">
                 <Icon className={`h-6 w-6 shrink-0 ${s.color}`} />
@@ -45,7 +47,7 @@ export function RecentTransactions({ items }: { items: RecentTx[] }) {
                   <p className="truncate font-medium">{t.description}</p>
                   <p className="truncate text-xs text-gray-500">
                     {formatDateBR(t.transaction_date)}
-                    {t.type !== "transfer" && ` • ${t.category?.name ?? "Sem categoria"}`}
+                    {showCategory && ` • ${t.category?.name ?? "Sem categoria"}`}
                     {t.status === "pending" && (
                       <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                         Pendente

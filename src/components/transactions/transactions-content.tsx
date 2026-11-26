@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Pencil } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowLeftRight,
+  ArrowUpCircle,
+  CreditCard,
+  Pencil,
+} from "lucide-react";
 import { createTransaction } from "@/app/(dashboard)/lancamentos/actions";
+import { DeletePurchaseButton } from "@/components/cards/delete-purchase-button";
 import { createClient } from "@/lib/supabase/server";
 import {
   currentYearMonth,
@@ -18,20 +25,26 @@ type SearchParams = Promise<{ ano?: string; mes?: string }>;
 
 type TxRow = {
   id: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "card_payment";
   description: string;
   amount: number | string;
   transaction_date: string;
   status: "paid" | "pending";
+  card_id: string | null;
+  purchase_group_id: string | null;
+  installment_number: number | null;
+  installments_count: number | null;
   account: { name: string } | null;
   transfer_account: { name: string } | null;
   category: { name: string } | null;
+  card: { name: string } | null;
 };
 
 const TYPE_STYLE = {
   income: { icon: ArrowUpCircle, color: "text-green-600", sign: "+" },
   expense: { icon: ArrowDownCircle, color: "text-red-600", sign: "−" },
   transfer: { icon: ArrowLeftRight, color: "text-gray-500", sign: "" },
+  card_payment: { icon: CreditCard, color: "text-gray-500", sign: "−" },
 } as const;
 
 export async function TransactionsContent({ searchParams }: { searchParams: SearchParams }) {
@@ -55,10 +68,11 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
     supabase
       .from("transactions")
       .select(
-        "id, type, description, amount, transaction_date, status, " +
+        "id, type, description, amount, transaction_date, status, card_id, purchase_group_id, " +
+          "installment_number, installments_count, " +
           "account:financial_accounts!transactions_account_id_fkey(name), " +
           "transfer_account:financial_accounts!transactions_transfer_account_id_fkey(name), " +
-          "category:categories(name)"
+          "category:categories(name), card:credit_cards(name)"
       )
       .gte("transaction_date", start)
       .lt("transaction_date", end)
@@ -120,16 +134,33 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
           {transactions.map((t) => {
             const style = TYPE_STYLE[t.type];
             const Icon = style.icon;
-            const details =
-              t.type === "transfer"
-                ? `${t.account?.name ?? "?"} → ${t.transfer_account?.name ?? "?"}`
-                : [t.category?.name ?? "Sem categoria", t.account?.name].filter(Boolean).join(" • ");
+            const isCardExpense = t.type === "expense" && t.card_id !== null;
+            const isCardPayment = t.type === "card_payment";
+            const isInstallment = isCardExpense && (t.installments_count ?? 1) > 1;
+
+            let details: string;
+            if (t.type === "transfer") {
+              details = `${t.account?.name ?? "?"} → ${t.transfer_account?.name ?? "?"}`;
+            } else if (isCardPayment) {
+              details = `Fatura ${t.card?.name ?? "cartão"} • ${t.account?.name ?? "conta"}`;
+            } else if (isCardExpense) {
+              details = [t.category?.name ?? "Sem categoria", `Cartão ${t.card?.name ?? ""}`.trim()].join(" • ");
+            } else {
+              details = [t.category?.name ?? "Sem categoria", t.account?.name].filter(Boolean).join(" • ");
+            }
 
             return (
               <li key={t.id} className="flex items-center gap-2 p-4 sm:gap-3">
                 <Icon className={`h-6 w-6 shrink-0 ${style.color}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{t.description}</p>
+                  <p className="truncate font-medium">
+                    {t.description}
+                    {isInstallment && (
+                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-normal text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        {t.installment_number}/{t.installments_count}
+                      </span>
+                    )}
+                  </p>
                   <p className="truncate text-xs text-gray-500">
                     {formatDateBR(t.transaction_date)} • {details}
                     {t.status === "pending" && (
@@ -143,14 +174,22 @@ export async function TransactionsContent({ searchParams }: { searchParams: Sear
                   {style.sign}
                   {formatBRL(Number(t.amount))}
                 </span>
-                <Link
-                  href={`/lancamentos/${t.id}/editar`}
-                  aria-label={`Editar ${t.description}`}
-                  className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Link>
-                <DeleteTransactionButton id={t.id} />
+
+                {!isCardExpense && !isCardPayment && (
+                  <Link
+                    href={`/lancamentos/${t.id}/editar`}
+                    aria-label={`Editar ${t.description}`}
+                    className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                )}
+
+                {isCardExpense && t.purchase_group_id ? (
+                  <DeletePurchaseButton groupId={t.purchase_group_id} />
+                ) : (
+                  <DeleteTransactionButton id={t.id} />
+                )}
               </li>
             );
           })}

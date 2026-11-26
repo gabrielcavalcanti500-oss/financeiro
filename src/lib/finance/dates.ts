@@ -63,3 +63,27 @@ export function shortMonthLabel(year: number, month: number): string {
     .toLocaleDateString("pt-BR", { month: "short" })
     .replace(".", "");
 }
+
+/**
+ * Fatura (identificada pelo mês em que FECHA) que recebe uma compra feita em dateISO.
+ * Compra no dia do fechamento ou depois vai para a fatura do mês seguinte.
+ */
+export function invoiceMonthFor(dateISO: string, closingDay: number) {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  return d >= closingDay ? shiftMonth(y, m, 1) : { year: y, month: m };
+}
+
+export function invoiceClosingISO(year: number, month: number, closingDay: number): string {
+  return `${year}-${pad(month)}-${pad(closingDay)}`;
+}
+
+/** Vencimento: no mesmo mês do fechamento se o dia de vencer vem depois dele; senão, no mês seguinte. */
+export function invoiceDueISO(
+  year: number,
+  month: number,
+  closingDay: number,
+  dueDay: number
+): string {
+  const target = dueDay > closingDay ? { year, month } : shiftMonth(year, month, 1);
+  return `${target.year}-${pad(target.month)}-${pad(dueDay)}`;
+}
