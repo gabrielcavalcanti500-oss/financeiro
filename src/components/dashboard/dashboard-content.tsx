@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowDownCircle, ArrowUpCircle, Scale, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { currentYearMonth, monthLabel, shiftMonth, shortMonthLabel } from "@/lib/finance/dates";
 import { formatBRL, sumMoney } from "@/lib/finance/money";
@@ -9,9 +9,10 @@ import { ExpensesDonut, type DonutItem } from "@/components/charts/expenses-donu
 import { MonthlyBars, type MonthlyPoint } from "@/components/charts/monthly-bars";
 import { RecentTransactions, type RecentTx } from "./recent-transactions";
 import { SummaryCard } from "./summary-card";
+import { BalanceHero } from "./balance-hero";
 
 const CARD =
-  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900";
+  "animate-fade-up rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900";
 
 export async function DashboardContent() {
   await connection();
@@ -81,16 +82,16 @@ export async function DashboardContent() {
     <>
       <p className="text-sm text-gray-500">{monthLabel(year, month)}</p>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard title="Saldo total" value={formatBRL(totalBalance)} icon={Wallet} />
-        <SummaryCard title="Receitas do mês" value={formatBRL(income)} icon={ArrowUpCircle} tone="income" />
-        <SummaryCard title="Despesas do mês" value={formatBRL(expense)} icon={ArrowDownCircle} tone="expense" />
-        <SummaryCard
-          title="Resultado do mês"
-          value={formatBRL(result)}
-          icon={Scale}
-          tone={result >= 0 ? "income" : "expense"}
-        />
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[2fr_1fr_1fr]">
+        <div className="animate-fade-up col-span-2 lg:col-span-1">
+          <BalanceHero balance={totalBalance} result={result} />
+        </div>
+        <div className="animate-fade-up" style={{ animationDelay: "60ms" }}>
+          <SummaryCard title="Receitas do mês" value={formatBRL(income)} icon={ArrowUpRight} tone="income" />
+        </div>
+        <div className="animate-fade-up" style={{ animationDelay: "120ms" }}>
+          <SummaryCard title="Despesas do mês" value={formatBRL(expense)} icon={ArrowDownRight} tone="expense" />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

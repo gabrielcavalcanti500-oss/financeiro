@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #f9fafb;
   --foreground: #171717;
+  color-scheme: light dark; /* date picker, scrollbars e menus nativos acompanham o tema */
 }
 
 @theme inline {
@@ -14,7 +15,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #030712;
     --foreground: #ededed;
   }
 }
@@ -22,5 +23,44 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent; /* tira o flash cinza ao tocar no Android */
+}
+
+a,
+button,
+[role="button"] {
+  touch-action: manipulation; /* sem atraso de toque nem zoom por toque duplo */
+}
+
+/* Entrada suave dos blocos (o atraso vem de style={{ animationDelay }}) */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}
+
+/* Celular: campos com área de toque confortável e fonte 16px */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
 }
