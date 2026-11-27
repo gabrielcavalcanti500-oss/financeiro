@@ -21,7 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Início", icon: LayoutDashboard, mobile: true },
   { href: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight, mobile: true },
   { href: "/cartoes", label: "Cartões", icon: CreditCard, mobile: true },
-  { href: "/contas", label: "Contas", icon: Wallet, mobile: true },
+  { href: "/contas", label: "Contas", icon: Wallet, mobile: false },
   { href: "/categorias", label: "Categorias", icon: Tags, mobile: false },
   { href: "/orcamentos", label: "Orçamentos", icon: PiggyBank, mobile: false },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3, mobile: false },

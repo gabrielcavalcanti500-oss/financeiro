@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { BarChart3, ChevronRight, PiggyBank, Tags } from "lucide-react";
+import { BarChart3, ChevronRight, PiggyBank, Tags, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileForm } from "./profile-form";
@@ -9,6 +9,7 @@ const SHORTCUTS = [
   { href: "/categorias", label: "Categorias", description: "Crie, edite e escolha cores", icon: Tags },
   { href: "/orcamentos", label: "Orçamentos", description: "Defina limites mensais por categoria", icon: PiggyBank },
   { href: "/relatorios", label: "Relatórios", description: "Resumo mensal e anual", icon: BarChart3 },
+  { href: "/contas", label: "Contas", description: "Saldos, editar e arquivar", icon: Wallet },
 ];
 
 export async function SettingsContent() {

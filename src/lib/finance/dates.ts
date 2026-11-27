@@ -94,3 +94,21 @@ export function daysBetweenISO(fromISO: string, toISO: string): number {
   const [ty, tm, td] = toISO.split("-").map(Number);
   return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000);
 }
+
+/** Soma dias a uma data YYYY-MM-DD (delta pode ser negativo), sem depender de fuso. */
+export function addDaysISO(iso: string, delta: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + delta));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+/** "Hoje", "Ontem" ou "Segunda, 24 nov". */
+export function dayLabel(iso: string, todayIso: string): string {
+  if (iso === todayIso) return "Hoje";
+  if (iso === addDaysISO(todayIso, -1)) return "Ontem";
+  const [y, m, d] = iso.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d))
+    .toLocaleDateString("pt-BR", { weekday: "long", timeZone: "UTC" })
+    .split("-")[0];
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${d} ${shortMonthLabel(y, m)}`;
+}
