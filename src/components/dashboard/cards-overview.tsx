@@ -39,7 +39,7 @@ export function CardsOverview({ items }: { items: CardOverview[] }) {
     if (items.length === 0) return null;
 
     return (
-        <section className="mt-6">
+        <section>
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Cartões</h2>
                 <Link href="/cartoes" className="text-sm font-medium text-green-600 hover:underline">
@@ -47,7 +47,7 @@ export function CardsOverview({ items }: { items: CardOverview[] }) {
                 </Link>
             </div>
 
-            <ul className="mt-3 grid gap-3 md:grid-cols-2">
+            <ul className="-mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0 lg:grid lg:overflow-visible [&::-webkit-scrollbar]:hidden">
                 {items.map((c) => {
                     const limitCents = Math.round(c.creditLimit * 100);
                     const usedCents = Math.round(c.used * 100);
@@ -61,7 +61,10 @@ export function CardsOverview({ items }: { items: CardOverview[] }) {
                         : `/cartoes/${c.cardId}`;
 
                     return (
-                        <li key={c.cardId} className="animate-fade-up">
+                        <li
+                            key={c.cardId}
+                            className="animate-fade-up w-[85%] max-w-sm shrink-0 snap-start only:w-full only:max-w-none lg:w-auto lg:max-w-none"
+                        >
                             <Link
                                 href={href}
                                 className="block rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm transition hover:border-green-600/50 dark:border-gray-800 dark:bg-gray-900"
@@ -97,7 +100,13 @@ export function CardsOverview({ items }: { items: CardOverview[] }) {
                                 </div>
                                 <div className="mt-1.5 flex justify-between text-xs text-gray-500">
                                     <span>Usado {formatBRL(c.used)}</span>
-                                    <span>Disponível {formatBRL(c.available)}</span>
+                                    {c.available < 0 ? (
+                                        <span className="font-medium text-red-600">
+                                            Limite excedido em {formatBRL(Math.abs(c.available))}
+                                        </span>
+                                    ) : (
+                                        <span>Disponível {formatBRL(c.available)}</span>
+                                    )}
                                 </div>
                             </Link>
                         </li>

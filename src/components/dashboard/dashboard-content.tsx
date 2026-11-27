@@ -29,30 +29,30 @@ export async function DashboardContent() {
   const supabase = await createClient();
   const { year, month } = currentYearMonth();
 
-    const [balancesRes, summaryRes, categoriesRes, evolutionRes, recentRes, cardsRes, invoicesRes] =
+  const [balancesRes, summaryRes, categoriesRes, evolutionRes, recentRes, cardsRes, invoicesRes] =
     await Promise.all([
-    supabase
-      .from("account_balances")
-      .select("account_id, name, balance, type")
-      .eq("is_archived", false)
-      .order("name"),
-    supabase.rpc("monthly_summary", { p_year: year, p_month: month }),
-    supabase.rpc("expenses_by_category", { p_year: year, p_month: month }),
-    supabase.rpc("monthly_evolution", { p_year: year, p_month: month, p_months: 6 }),
-    supabase
-      .from("transactions")
-      .select("id, type, description, amount, transaction_date, status, category:categories(name)")
-      .order("transaction_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(5),
-          supabase
-      .from("card_summary")
-      .select("card_id, name, credit_limit, closing_day, due_day, used, available")
-      .order("name"),
-    supabase.from("card_invoices").select("card_id, invoice_year, invoice_month, total, paid"),
-  ]);
+      supabase
+        .from("account_balances")
+        .select("account_id, name, balance, type")
+        .eq("is_archived", false)
+        .order("name"),
+      supabase.rpc("monthly_summary", { p_year: year, p_month: month }),
+      supabase.rpc("expenses_by_category", { p_year: year, p_month: month }),
+      supabase.rpc("monthly_evolution", { p_year: year, p_month: month, p_months: 6 }),
+      supabase
+        .from("transactions")
+        .select("id, type, description, amount, transaction_date, status, category:categories(name)")
+        .order("transaction_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("card_summary")
+        .select("card_id, name, credit_limit, closing_day, due_day, used, available")
+        .order("name"),
+      supabase.from("card_invoices").select("card_id, invoice_year, invoice_month, total, paid"),
+    ]);
 
-    const failed =
+  const failed =
     balancesRes.error ??
     summaryRes.error ??
     categoriesRes.error ??
@@ -96,7 +96,7 @@ export async function DashboardContent() {
 
   const recent = (recentRes.data ?? []) as unknown as RecentTx[];
 
-    // Cartões: limite usado e a próxima fatura a pagar de cada um.
+  // Cartões: limite usado e a próxima fatura a pagar de cada um.
   const today = todayISO();
   const invoices = (invoicesRes.data ?? []) as {
     card_id: string;
@@ -151,74 +151,89 @@ export async function DashboardContent() {
     <>
       <p className="text-sm text-gray-500">{monthLabel(year, month)}</p>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[2fr_1fr_1fr]">
-        <div className="animate-fade-up col-span-2 lg:col-span-1">
-          <BalanceHero balance={totalBalance} result={result} />
-        </div>
-        <div className="animate-fade-up" style={{ animationDelay: "60ms" }}>
-          <SummaryCard title="Receitas do mês" value={formatBRL(income)} icon={ArrowUpRight} tone="income" />
-        </div>
-        <div className="animate-fade-up" style={{ animationDelay: "120ms" }}>
-          <SummaryCard title="Despesas do mês" value={formatBRL(expense)} icon={ArrowDownRight} tone="expense" />
-        </div>
-      </div>
-
-      <CardsOverview items={cardsOverview} />
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <section className={CARD}>
-          <h2 className="font-semibold">Despesas por categoria</h2>
-          <div className="mt-3">
-            {donutData.length === 0 ? (
-              <p className="py-10 text-center text-sm text-gray-500">Sem despesas pagas neste mês.</p>
-            ) : (
-              <ExpensesDonut data={donutData} />
-            )}
-          </div>
-        </section>
-
-        <section className={CARD}>
-          <h2 className="font-semibold">Receitas x despesas (6 meses)</h2>
-          <div className="mt-3">
-            <MonthlyBars data={monthlyData} />
-          </div>
-        </section>
-      </div>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Suas contas</h2>
-            <Link href="/contas" className="text-sm font-medium text-green-600 hover:underline">
-              Gerenciar
-            </Link>
-          </div>
-
-          {accounts.length === 0 ? (
-            <div className="mt-3 rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
-              Você ainda não tem contas.{" "}
-              <Link href="/contas" className="font-medium text-green-600 hover:underline">
-                Crie a primeira
-              </Link>
-              .
+      {/* Celular: coluna única, na ordem dos "order-*". PC: principal + lateral.
+          Os wrappers "contents" deixam os blocos se misturarem no celular. */}
+      <div className="mt-3 flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8">
+        {/* Coluna principal */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
+          <div className="order-1 lg:order-none">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[2fr_1fr_1fr]">
+              <div className="animate-fade-up col-span-2 lg:col-span-1">
+                <BalanceHero balance={totalBalance} result={result} />
+              </div>
+              <div className="animate-fade-up" style={{ animationDelay: "60ms" }}>
+                <SummaryCard title="Receitas do mês" value={formatBRL(income)} icon={ArrowUpRight} tone="income" />
+              </div>
+              <div className="animate-fade-up" style={{ animationDelay: "120ms" }}>
+                <SummaryCard title="Despesas do mês" value={formatBRL(expense)} icon={ArrowDownRight} tone="expense" />
+              </div>
             </div>
-          ) : (
-            <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
-              {accounts.map((a) => (
-                <li key={a.account_id} className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium">{a.name}</p>
-                    <p className="text-xs text-gray-500">{ACCOUNT_TYPE_LABELS[a.type] ?? a.type}</p>
-                  </div>
-                  <span className={`font-semibold ${Number(a.balance) < 0 ? "text-red-600" : ""}`}>
-                    {formatBRL(Number(a.balance))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          </div>
 
-        <RecentTransactions items={recent} />
+          <div className="order-4 grid gap-4 lg:order-none xl:grid-cols-2">
+            <section className={CARD}>
+              <h2 className="font-semibold">Despesas por categoria</h2>
+              <div className="mt-3">
+                {donutData.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-gray-500">Sem despesas pagas neste mês.</p>
+                ) : (
+                  <ExpensesDonut data={donutData} />
+                )}
+              </div>
+            </section>
+
+            <section className={CARD}>
+              <h2 className="font-semibold">Receitas x despesas (6 meses)</h2>
+              <div className="mt-3">
+                <MonthlyBars data={monthlyData} />
+              </div>
+            </section>
+          </div>
+
+          <div className="order-3 lg:order-none">
+            <RecentTransactions items={recent} />
+          </div>
+        </div>
+
+        {/* Lateral (no celular, entra no meio da pilha) */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
+          <div className="order-2 lg:order-none">
+            <CardsOverview items={cardsOverview} />
+          </div>
+
+          <section className="order-5 lg:order-none">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Suas contas</h2>
+              <Link href="/contas" className="text-sm font-medium text-green-600 hover:underline">
+                Gerenciar
+              </Link>
+            </div>
+
+            {accounts.length === 0 ? (
+              <div className="mt-3 rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+                Você ainda não tem contas.{" "}
+                <Link href="/contas" className="font-medium text-green-600 hover:underline">
+                  Crie a primeira
+                </Link>
+                .
+              </div>
+            ) : (
+              <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+                {accounts.map((a) => (
+                  <li key={a.account_id} className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium">{a.name}</p>
+                      <p className="text-xs text-gray-500">{ACCOUNT_TYPE_LABELS[a.type] ?? a.type}</p>
+                    </div>
+                    <span className={`font-semibold ${Number(a.balance) < 0 ? "text-red-600" : ""}`}>
+                      {formatBRL(Number(a.balance))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </>
   );
