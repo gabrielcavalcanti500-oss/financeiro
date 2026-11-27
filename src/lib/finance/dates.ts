@@ -87,3 +87,10 @@ export function invoiceDueISO(
   const target = dueDay > closingDay ? { year, month } : shiftMonth(year, month, 1);
   return `${target.year}-${pad(target.month)}-${pad(dueDay)}`;
 }
+
+/** Dias entre duas datas YYYY-MM-DD (negativo se toISO já passou). Usa UTC para não sofrer com horário de verão. */
+export function daysBetweenISO(fromISO: string, toISO: string): number {
+  const [fy, fm, fd] = fromISO.split("-").map(Number);
+  const [ty, tm, td] = toISO.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000);
+}

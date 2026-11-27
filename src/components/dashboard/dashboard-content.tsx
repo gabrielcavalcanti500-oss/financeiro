@@ -2,7 +2,15 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { currentYearMonth, monthLabel, shiftMonth, shortMonthLabel } from "@/lib/finance/dates";
+import {
+  currentYearMonth,
+  daysBetweenISO,
+  invoiceDueISO,
+  monthLabel,
+  shiftMonth,
+  shortMonthLabel,
+  todayISO,
+} from "@/lib/finance/dates";
 import { formatBRL, sumMoney } from "@/lib/finance/money";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/finance/labels";
 import { ExpensesDonut, type DonutItem } from "@/components/charts/expenses-donut";
@@ -10,6 +18,7 @@ import { MonthlyBars, type MonthlyPoint } from "@/components/charts/monthly-bars
 import { RecentTransactions, type RecentTx } from "./recent-transactions";
 import { SummaryCard } from "./summary-card";
 import { BalanceHero } from "./balance-hero";
+import { CardsOverview, type CardOverview } from "./cards-overview";
 
 const CARD =
   "animate-fade-up rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900";
@@ -20,7 +29,8 @@ export async function DashboardContent() {
   const supabase = await createClient();
   const { year, month } = currentYearMonth();
 
-  const [balancesRes, summaryRes, categoriesRes, evolutionRes, recentRes] = await Promise.all([
+    const [balancesRes, summaryRes, categoriesRes, evolutionRes, recentRes, cardsRes, invoicesRes] =
+    await Promise.all([
     supabase
       .from("account_balances")
       .select("account_id, name, balance, type")
@@ -35,10 +45,21 @@ export async function DashboardContent() {
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
+          supabase
+      .from("card_summary")
+      .select("card_id, name, credit_limit, closing_day, due_day, used, available")
+      .order("name"),
+    supabase.from("card_invoices").select("card_id, invoice_year, invoice_month, total, paid"),
   ]);
 
-  const failed =
-    balancesRes.error ?? summaryRes.error ?? categoriesRes.error ?? evolutionRes.error ?? recentRes.error;
+    const failed =
+    balancesRes.error ??
+    summaryRes.error ??
+    categoriesRes.error ??
+    evolutionRes.error ??
+    recentRes.error ??
+    cardsRes.error ??
+    invoicesRes.error;
   if (failed) {
     console.error("dashboard:", failed.code, failed.message);
     return (
@@ -75,6 +96,54 @@ export async function DashboardContent() {
 
   const recent = (recentRes.data ?? []) as unknown as RecentTx[];
 
+    // Cartões: limite usado e a próxima fatura a pagar de cada um.
+  const today = todayISO();
+  const invoices = (invoicesRes.data ?? []) as {
+    card_id: string;
+    invoice_year: number;
+    invoice_month: number;
+    total: number | string;
+    paid: number | string;
+  }[];
+
+  const cardsOverview: CardOverview[] = (
+    (cardsRes.data ?? []) as {
+      card_id: string;
+      name: string;
+      credit_limit: number | string;
+      closing_day: number;
+      due_day: number;
+      used: number | string;
+      available: number | string;
+    }[]
+  ).map((c): CardOverview => {
+    // Próxima a pagar = a fatura mais antiga que ainda tem valor restante.
+    const next = invoices
+      .filter((i) => i.card_id === c.card_id && Math.round((Number(i.total) - Number(i.paid)) * 100) > 0)
+      .sort((a, b) => a.invoice_year - b.invoice_year || a.invoice_month - b.invoice_month)[0];
+
+    const base = {
+      cardId: c.card_id,
+      name: c.name,
+      creditLimit: Number(c.credit_limit),
+      used: Number(c.used),
+      available: Number(c.available),
+    };
+    if (!next) return { ...base, nextInvoice: null };
+
+    const dueISO = invoiceDueISO(next.invoice_year, next.invoice_month, c.closing_day, c.due_day);
+    return {
+      ...base,
+      nextInvoice: {
+        year: next.invoice_year,
+        month: next.invoice_month,
+        remaining: sumMoney([Number(next.total), -Number(next.paid)]),
+        dueISO,
+        daysLeft: daysBetweenISO(today, dueISO),
+      },
+    };
+  });
+
   // Evita warning de variável sem uso caso a evolução venha vazia
   void shiftMonth;
 
@@ -94,6 +163,7 @@ export async function DashboardContent() {
         </div>
       </div>
 
+      <CardsOverview items={cardsOverview} />
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className={CARD}>
           <h2 className="font-semibold">Despesas por categoria</h2>

@@ -220,3 +220,43 @@ export async function payInvoice(_prev: ActionState, formData: FormData): Promis
   revalidateAll();
   return { success: true };
 }
+
+export async function updateCard(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const id = text(formData, "id");
+  if (!id || !idSchema.safeParse(id).success) return { error: "Cartão inválido." };
+
+  const parsed = cardSchema.safeParse({
+    name: formData.get("name"),
+    closing_day: formData.get("closing_day"),
+    due_day: formData.get("due_day"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const limit = parseMoney(text(formData, "credit_limit") ?? "0");
+  if (limit === null || Number(limit) < 0) {
+    return { error: "Limite inválido. Use o formato 5000,00" };
+  }
+
+  const supabase = await createClient();
+  // O RLS garante que só é possível alterar cartões do próprio usuário.
+  const { data, error } = await supabase
+    .from("credit_cards")
+    .update({
+      name: parsed.data.name,
+      credit_limit: limit,
+      closing_day: parsed.data.closing_day,
+      due_day: parsed.data.due_day,
+    })
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    if (error.code === "23505") return { error: "Já existe um cartão com esse nome." };
+    console.error("updateCard:", error.code, error.message);
+    return { error: "Não foi possível salvar o cartão." };
+  }
+  if (!data || data.length === 0) return { error: "Cartão não encontrado." };
+
+  revalidateAll();
+  return { success: true };
+}

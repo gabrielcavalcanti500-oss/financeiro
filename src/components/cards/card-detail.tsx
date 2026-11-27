@@ -15,6 +15,7 @@ import { DeletePurchaseButton } from "./delete-purchase-button";
 import { InvoiceNav } from "./invoice-nav";
 import { PayInvoiceForm } from "./pay-invoice-form";
 import { PurchaseForm } from "./purchase-form";
+import { EditCardForm } from "./edit-card-form";
 
 type SearchParams = Promise<{ ano?: string; mes?: string }>;
 
@@ -172,6 +173,14 @@ export async function CardDetail({
           <span className="font-semibold">Disponível {formatBRL(Number(card.available))}</span>
         </div>
       </section>
+
+      <EditCardForm
+        id={id}
+        name={card.name}
+        creditLimit={Number(card.credit_limit)}
+        closingDay={card.closing_day}
+        dueDay={card.due_day}
+      />
 
       <PurchaseForm
         cardId={id}
