@@ -87,8 +87,8 @@ function Chip({
             onClick={onClick}
             aria-pressed={selected}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition active:scale-95 ${selected
-                    ? "border-green-600 bg-green-600 text-white"
-                    : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                ? "border-green-600 bg-green-600 text-white"
+                : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                 }`}
         >
             {children}
@@ -112,7 +112,8 @@ function LaunchFormInner({
     defaultDate,
     initialType,
     onAgain,
-}: Props & { onAgain: () => void }) {
+    onSaved,
+}: Props & { onAgain: () => void; onSaved: () => void }) {
     const router = useRouter();
     const [state, formAction, pending] = useActionState(createLaunch, initialState);
     const intentRef = useRef<"close" | "again">("close");
@@ -126,17 +127,24 @@ function LaunchFormInner({
     const [cardId, setCardId] = useState(cards[0]?.id ?? "");
     const [installments, setInstallments] = useState(1);
     const [paid, setPaid] = useState(true);
+    const handledRef = useRef<ActionState | null>(null);
 
     useEffect(() => {
-        if (!state.success) return;
+        // Cada resultado é tratado uma única vez. Sem isso, ao voltar para esta tela
+        // (o Next guarda o estado anterior), o redirecionamento rodaria de novo.
+        if (!state.success || handledRef.current === state) return;
+        handledRef.current = state;
+
         if (intentRef.current === "again") {
             onAgain();
             return;
         }
+
         // Volta para a lista, já no mês do lançamento salvo.
         const [y, m] = date.split("-").map(Number);
+        onSaved(); // limpa o formulário para a próxima vez que abrir
         router.push(`/lancamentos?ano=${y}&mes=${m}`);
-    }, [state, date, onAgain, router]);
+    }, [state, date, onAgain, onSaved, router]);
 
     const style = TYPES[type];
     const isCard = type === "card";
@@ -378,8 +386,8 @@ function LaunchFormInner({
                                         onClick={() => setCategoryId(selected ? "" : c.id)}
                                         aria-pressed={selected}
                                         className={`relative flex flex-col items-center gap-1.5 rounded-2xl border p-2.5 text-center text-xs font-medium transition active:scale-95 ${selected
-                                                ? "border-green-600 bg-green-50 dark:bg-green-950/40"
-                                                : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                                            ? "border-green-600 bg-green-50 dark:bg-green-950/40"
+                                            : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                                             }`}
                                     >
                                         {selected && (
@@ -479,6 +487,10 @@ export function QuickLaunchForm(props: Props) {
         setFlash(true);
     }, []);
 
+    const handleSaved = useCallback(() => {
+        setResetCount((c) => c + 1); // recria o formulário vazio
+    }, []);
+
     useEffect(() => {
         if (!flash) return;
         const timer = setTimeout(() => setFlash(false), 3500);
@@ -492,7 +504,7 @@ export function QuickLaunchForm(props: Props) {
                     Lançamento salvo! Pode lançar o próximo.
                 </p>
             )}
-            <LaunchFormInner key={resetCount} {...props} onAgain={handleAgain} />
+            <LaunchFormInner key={resetCount} {...props} onAgain={handleAgain} onSaved={handleSaved} />
         </div>
     );
 }
